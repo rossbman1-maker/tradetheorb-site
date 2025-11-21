@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trade The ORB – Prop Firm Challenge Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #050712;
+      --bg-panel: #0B1020;
+      --bg-panel-soft: #111521;
+      --border: #1A2030;
+
+      --accent: #2EC7FF;
+      --accent2: #0078D4;
+      --accent-soft: rgba(46,199,255,0.14);
+
+      --text-main: #FFFFFF;
+      --text-muted: #A0A8B8;
+      --text-soft: #7A8294;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background:
+        radial-gradient(circle at top, #101624 0, #020617 55%),
+        radial-gradient(circle at bottom, #020617 0, #000000 70%);
+      color: var(--text-main);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.75rem 1.25rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-main {
+      width: 120px;
+      max-width: 35vw;
+      margin-bottom: 0.75rem;
+      filter: drop-shadow(0 0 18px rgba(46,199,255,0.25));
+    }
+
+    header h1 {
+      font-size: clamp(1.9rem, 2.7vw, 2.5rem);
+      margin: 0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    .tagline {
+      margin-top: 0.4rem;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+    }
+
+    header p {
+      margin-top: 0.6rem;
+      color: var(--text-soft);
+      font-size: 0.86rem;
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.18rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(31,41,55,0.9);
+      color: var(--text-soft);
+      margin-bottom: 0.35rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 1.25rem;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      box-shadow: 0 24px 45px rgba(0,0,0,0.35);
+    }
+
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .field-group { margin-bottom: 0.65rem; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      margin-bottom: 0.15rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.38rem 0.5rem;
+      border-radius: 0.55rem;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text-main);
+      font-size: 0.88rem;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(46,199,255,0.14);
+    }
+
+    .risk-tabs,
+    .drawdown-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.25rem;
+    }
+
+    .pill-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #020617;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.15s, border-color 0.15s, color 0.15s,
+                  transform 0.08s;
+    }
+    .pill-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .pill-btn.active {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border-color: transparent;
+      color: #020617;
+      font-weight: 600;
+      transform: translateY(-1px);
+      box-shadow: 0 0 15px rgba(46,199,255,0.4);
+    }
+
+    .primary-btn {
+      margin-top: 0.75rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #020617;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(0,0,0,0.55);
+      transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
+      width: 100%;
+    }
+    .primary-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 24px 40px rgba(0,0,0,0.7);
+    }
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.4rem;
+    }
+
+    .stat-card {
+      border-radius: 0.8rem;
+      background: #111521;
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.75rem;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stat-value {
+      margin-top: 0.1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .stat-note {
+      margin-top: 0.1rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .chart-row {
+      margin-top: 1.25rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 900px) {
+      .chart-row { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .table-wrapper {
+      margin-top: 1.25rem;
+      background: var(--bg-panel);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 24px 45px rgba(0,0,0,0.45);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    thead { background: #020617; }
+    th, td {
+      padding: 0.5rem 0.55rem;
+      text-align: right;
+      border-bottom: 1px solid #111827;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    tbody tr:nth-child(even) { background: #050816; }
+    tbody tr.highlight { background: rgba(46,199,255,0.08); }
+
+    .info-section {
+      margin-top: 1.75rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 900px) {
+      .info-section { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .info-card {
+      background: var(--bg-panel);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      box-shadow: 0 24px 45px rgba(0,0,0,0.4);
+    }
+
+    .info-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .info-card p {
+      margin: 0.1rem 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .info-list {
+      padding-left: 1rem;
+      margin: 0.25rem 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .info-list li { margin-bottom: 0.15rem; }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      color: var(--text-soft);
+      font-size: 0.78rem;
+    }
+
+    .orb-banner {
+      max-width: 520px;
+      width: 100%;
+      border-radius: 0.75rem;
+      margin: 0 auto 0.5rem;
+      display: block;
+      box-shadow: 0 22px 45px rgba(0,0,0,0.75);
+    }
+
+    .footer-text-strong {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <img src="tradetheornlogo3.png" alt="Trade The ORB" class="logo-main" />
+      <div class="badge">Funding Toolkit · Monte Carlo Engine</div>
+      <h1><span>Prop Firm Challenge Simulator</span></h1>
+      <div class="tagline">Precision. Momentum. Mindset.</div>
+      <p>
+        Stress-test your trading strategy across instant funding,
+        single-phase and two-phase challenges. Use example templates or plug in
+        your own prop firm’s rules, then see how risk per trade changes pass-rate,
+        total cost and time-to-funding.
+      </p>
+    </header>
+
+    <div class="layout">
+      <!-- LEFT: SETTINGS -->
+      <div class="card">
+        <h2>Simulation Settings</h2>
+
+        <!-- STRATEGY -->
+        <div class="section-title">Strategy</div>
+        <div class="grid">
+          <div class="field-group">
+            <label>Win Rate (%)</label>
+            <input id="winRate" type="number" value="48" min="1" max="99" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Risk-Reward Ratio (1 : X)</label>
+            <input id="rr" type="number" value="1.6" min="0.1" step="0.1" />
+          </div>
+        </div>
+
+        <!-- COSTS IN R + HELPER -->
+        <div class="grid">
+          <div class="field-group">
+            <label>Average Costs per Trade (R)</label>
+            <input id="costPerTradeR" type="number" value="0" min="0" step="0.001" />
+            <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+              R is your risk per trade. If you risk \$1,000 and your average total costs
+              (spread + any commission + swap/slippage) are \$10, then costs are
+              0.01R (10 ÷ 1000). Leave as 0 if you want a clean R world.
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>Cost-in-R Helper (optional)</label>
+            <input id="helperAccountSize" type="number" placeholder="Account size $ (e.g. 200000)" style="margin-bottom:0.25rem;" />
+            <input id="helperRiskPct" type="number" placeholder="Risk % per trade (e.g. 0.5)" step="0.01" style="margin-bottom:0.25rem;" />
+            <input id="helperCostUSD" type="number" placeholder="Avg total costs $ (e.g. 10)" step="0.01" style="margin-bottom:0.25rem;" />
+            <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-top:0.15rem;">
+              <button type="button" class="pill-btn" id="helperCalcBtn">Calculate R from $</button>
+              <button type="button" class="pill-btn" id="helperApplyBtn">Apply to field</button>
+            </div>
+            <div id="helperOutput" style="font-size:0.75rem;color:var(--text-soft);margin-top:0.3rem;"></div>
+          </div>
+        </div>
+
+        <!-- EXAMPLE TEMPLATES -->
+        <div class="section-title" style="margin-top:0.75rem;">Challenge Templates</div>
+        <div class="field-group">
+          <label>Example Templates (start here, then adjust to your firm's rules)</label>
+          <select id="challengePreset">
+            <option value="custom">Custom / Manual</option>
+            <optgroup label="Instant Funding Examples">
+              <option value="exampleInstantLight">Example – Instant (5% trailing DD)</option>
+              <option value="exampleInstantStandard">Example – Instant (6% trailing DD)</option>
+            </optgroup>
+            <optgroup label="Single-Phase Evaluation Examples">
+              <option value="exampleSingleLight">Example – Single Phase (6% target, 6% max DD)</option>
+              <option value="exampleSingleStandard">Example – Single Phase (8% target, 8% max DD)</option>
+            </optgroup>
+            <optgroup label="Two-Phase Evaluation Examples">
+              <option value="exampleTwoConservative">Example – Two Phase (6% + 4%, 8% max DD)</option>
+              <option value="exampleTwoStandard">Example – Two Phase (8% + 5%, 10% max DD)</option>
+              <option value="exampleTwoAggressive">Example – Two Phase (10% + 5%, 10% max DD)</option>
+            </optgroup>
+          </select>
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.15rem;">
+            These are generic examples only. Instant templates do <strong>not</strong> set a target –
+            use the Instant Consistency Helper or enter your own payout threshold.
+          </div>
+        </div>
+
+        <!-- MY SAVED TEMPLATES -->
+        <div class="field-group">
+          <label>My Saved Templates (stored in this browser)</label>
+          <select id="userPreset">
+            <option value="">— No saved templates yet —</option>
+          </select>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-top:0.25rem;">
+            <button type="button" class="pill-btn" id="savePresetBtn">Save current as new template</button>
+            <button type="button" class="pill-btn" id="deletePresetBtn">Delete selected</button>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.15rem;">
+            Saved templates are stored locally in your browser (no server, no login). Ideal for
+            keeping your own firm’s exact rules up to date.
+          </div>
+        </div>
+
+        <!-- SHARE LINK -->
+        <div class="field-group">
+          <label>Share this setup</label>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;">
+            <button type="button" class="pill-btn" id="shareLinkBtn">Copy shareable link</button>
+            <span id="shareStatus" style="font-size:0.75rem;color:var(--text-soft);"></span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.15rem;">
+            Generates a URL with your current inputs so you (or other traders) can reload this exact configuration.
+          </div>
+        </div>
+
+        <!-- CHALLENGE RULES -->
+        <div class="section-title" style="margin-top:0.75rem;">Challenge Rules / Payout Threshold</div>
+        <div class="grid">
+          <div class="field-group">
+            <label>Challenge Type</label>
+            <select id="challengeType">
+              <option value="instant">Instant Funding</option>
+              <option value="single">Single-Phase Evaluation</option>
+              <option value="two">Two-Phase Evaluation</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Challenge Fee ($)</label>
+            <input id="fee" type="number" value="500" min="0" step="1" />
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field-group">
+            <label>Profit Target – Phase 1 (%)</label>
+            <input id="profitTargetPhase1" type="number" value="6" min="0.1" step="0.1" />
+            <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+              For <strong>instant</strong> accounts, this is treated as the payout threshold.
+              You can set it via the Instant Consistency Helper below.
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Profit Target – Phase 2 (%)</label>
+            <input id="profitTargetPhase2" type="number" value="5" min="0" step="0.1" />
+            <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+              Used only for two-phase challenges. For instant / single-phase, Phase 1 is the only target used.
+            </div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="field-group">
+            <label>Max Drawdown (%)</label>
+            <input id="maxDD" type="number" value="6" min="1" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Drawdown Type</label>
+            <div class="drawdown-toggle">
+              <button type="button" class="pill-btn active" data-ddtype="initial">Initial</button>
+              <button type="button" class="pill-btn" data-ddtype="trailing">Trailing</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Minimum Trading Days / Trades</label>
+          <input id="minTrades" type="number" value="0" min="0" step="1" />
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+            Approximate. If you normally take one trade per day, this is effectively your
+            minimum trading days (e.g. 5 for “at least 5 trading days” before payout).
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Average Trading Frequency</label>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;">
+            <input id="avgTrades" type="number" value="1" min="0" step="0.1" style="max-width:120px;" />
+            <select id="avgTradesPeriod" style="max-width:150px;">
+              <option value="day">per Day</option>
+              <option value="week">per Week</option>
+            </select>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+            Used only to convert trades into <strong>time</strong> (days / weeks to funding).
+            For “per week” we assume 5 trading days per week.
+          </div>
+        </div>
+
+        <!-- FUNDED ACCOUNT -->
+        <div class="section-title" style="margin-top:0.75rem;">Funded Account</div>
+        <div class="grid">
+          <div class="field-group">
+            <label>Account Size ($)</label>
+            <input id="accountSize" type="number" value="200000" min="1000" step="1000" />
+          </div>
+          <div class="field-group">
+            <label>Profit Split to Trader (%)</label>
+            <input id="profitSplit" type="number" value="80" min="0" max="100" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Funded Return Target (%) – for payout projection</label>
+          <input id="fundedTarget" type="number" value="10" min="0.1" step="0.5" />
+          <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.1rem;">
+            This does not affect pass-rate. It is used to estimate how big a payout would be
+            if you reach this % on the funded account. For instant models, you can set this
+            from the consistency rule below.
+          </div>
+        </div>
+
+        <!-- INSTANT CONSISTENCY HELPER -->
+        <div class="section-title" style="margin-top:0.75rem;">Instant Consistency Helper (optional)</div>
+        <div class="grid">
+          <div class="field-group">
+            <label>Risk per Trade when Biggest Day Occurred (%)</label>
+            <input id="instRiskPct" type="number" value="0.5" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Biggest Winning Day (R multiple)</label>
+            <input id="instMaxDayR" type="number" value="2" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Consistency Cap (max % of total profit in biggest day)</label>
+            <input id="instConsistencyCap" type="number" value="20" step="1" />
+          </div>
+        </div>
+        <div class="field-group">
+          <button type="button" class="pill-btn" id="instantHelperBtn">
+            Use consistency rule to set funded target
+          </button>
+          <div id="instantConsistencyOutput" style="font-size:0.75rem;color:var(--text-soft);margin-top:0.3rem;">
+            For instant funding only: calculates the total return (and \$ target) required to satisfy a
+            consistency cap like “no single day > 20% of total profit”.
+          </div>
+        </div>
+
+        <button id="runBtn" class="primary-btn">Run Simulation</button>
+      </div>
+
+      <!-- RIGHT: RESULTS SUMMARY -->
+      <div class="card">
+        <h2>Results</h2>
+
+        <div class="section-title">Risk per Trade (%)</div>
+        <div class="risk-tabs" id="riskTabs"></div>
+
+        <div class="results-grid" id="summaryStats"></div>
+
+        <div style="margin-top:0.9rem;font-size:0.78rem;color:var(--text-soft);">
+          Simulator runs multiple Monte Carlo paths per risk level.
+          Numbers are approximate and assume constant strategy stats and %-risk compounding.
+          Always verify your firm’s current rules before making risk decisions.
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="chart-row">
+      <div class="card">
+        <h2>Pass Rate vs Risk</h2>
+        <canvas id="passChart" height="150"></canvas>
+      </div>
+      <div class="card">
+        <h2>Cost to Get Funded (90% Confidence)</h2>
+        <canvas id="costChart" height="150"></canvas>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrapper">
+      <div style="padding:0.7rem 0.85rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:0.85rem;font-weight:600;">Complete Results Comparison</div>
+        <div style="font-size:0.75rem;color:var(--text-soft);">
+          Highlighted row = currently selected risk per trade.
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Risk %</th>
+              <th>Pass Rate</th>
+              <th>Trades / Success</th>
+              <th>Expected Trades to Fund (90% conf.)</th>
+              <th>Expected Cost</th>
+              <th>90% Confidence Cost</th>
+              <th>5+ Failure Risk</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INFO / EXPLANATION -->
+    <div class="info-section">
+      <div class="card info-card">
+        <div class="info-card-title">How to Use This Simulator</div>
+        <ul class="info-list">
+          <li><strong>1.</strong> Plug in your real win rate, R:R and average trading costs (spread, any commissions, typical slippage).</li>
+          <li><strong>2.</strong> Start from an example template or choose “Custom / Manual” and enter your prop firm’s live rules.</li>
+          <li><strong>3.</strong> Set account size, profit split and (optionally) a funded return target to see payout projections.</li>
+          <li><strong>4.</strong> For instant models, use the consistency helper to derive the payout threshold from your biggest day + cap, and set minimum trading days.</li>
+          <li><strong>5.</strong> Enter your average trading frequency (per day or per week) so the tool can turn “trades to funding” into real calendar time.</li>
+        </ul>
+      </div>
+
+      <div class="card info-card">
+        <div class="info-card-title">Understanding the Outputs</div>
+        <ul class="info-list">
+          <li><strong>Pass Rate:</strong> % of simulated attempts that hit the target (or instant payout threshold) before breaching drawdown.</li>
+          <li><strong>Trades per Successful Attempt:</strong> Typical trade count in a winning run.</li>
+          <li><strong>Expected Trades to Fund:</strong> Approximate total trades needed across retries to reach funding / payout with ~90% confidence.</li>
+          <li><strong>Expected Cost vs 90% Cost:</strong> Average spend vs the budget you should plan for to be reasonably safe.</li>
+          <li><strong>Time to Funding:</strong> Uses your average trades/day or trades/week to estimate days and weeks to hit funding.</li>
+          <li><strong>Payout Projection:</strong> What a given % return on the funded account would pay you after the profit split.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="card info-card">
+        <div class="info-card-title">Key Insights for Traders</div>
+        <ul class="info-list">
+          <li>Your playbook must have positive expectancy. This tool assumes your stats are already profitable.</li>
+          <li>Lower risk = higher pass-rate but more trades and slower time-to-funding.</li>
+          <li>Higher risk = fewer trades and faster completion, but a much higher chance of blowing multiple challenges.</li>
+          <li>Two-phase and trailing drawdown models are materially harder – budget at least 2–3× the fee compared with easy single-phase rules.</li>
+        </ul>
+      </div>
+
+      <div class="card info-card">
+        <div class="info-card-title">Common Mistakes to Avoid</div>
+        <ul class="info-list">
+          <li>Using aspirational win-rates instead of verified stats from your live trading.</li>
+          <li>Ignoring costs: spreads, commissions and slippage quietly eat into R and reduce pass rates.</li>
+          <li>Cranking risk to 3–5% per trade without appreciating how quickly a streak + trailing DD can tap you out.</li>
+          <li>Budgeting for one single challenge instead of a full campaign of attempts.</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <img src="tradetheorblogo2.png" alt="Trade The ORB · Ross Burland" class="orb-banner" />
+      <div>
+        <span class="footer-text-strong">Trade The ORB – Funding Toolkit.</span>
+        &nbsp;Built by Ross Burland, Day Trader & Performance Coach.
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ==== CONFIG ====
+
+    const RISK_LEVELS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+    const NUM_SIMULATIONS = 3000;
+    const MAX_TRADES_PER_ATTEMPT = 400;
+
+    const CHALLENGE_PRESETS = {
+      exampleInstantLight: {
+        label: "Instant (5% trailing DD)",
+        challengeType: "instant",
+        fee: 400,
+        accountSize: 200000,
+        profitSplit: 80,
+        maxDD: 5,
+        drawdownType: "trailing"
+      },
+      exampleInstantStandard: {
+        label: "Instant (6% trailing DD)",
+        challengeType: "instant",
+        fee: 500,
+        accountSize: 200000,
+        profitSplit: 80,
+        maxDD: 6,
+        drawdownType: "trailing"
+      },
+      exampleSingleLight: {
+        label: "Single Phase (6% target, 6% DD)",
+        challengeType: "single",
+        fee: 350,
+        accountSize: 200000,
+        profitSplit: 80,
+        profitTarget1: 6,
+        profitTarget2: 0,
+        maxDD: 6,
+        drawdownType: "initial"
+      },
+      exampleSingleStandard: {
+        label: "Single Phase (8% target, 8% DD)",
+        challengeType: "single",
+        fee: 500,
+        accountSize: 200000,
+        profitSplit: 80,
+        profitTarget1: 8,
+        profitTarget2: 0,
+        maxDD: 8,
+        drawdownType: "initial"
+      },
+      exampleTwoConservative: {
+        label: "Two Phase (6% + 4%, 8% DD)",
+        challengeType: "two",
+        fee: 400,
+        accountSize: 200000,
+        profitSplit: 80,
+        profitTarget1: 6,
+        profitTarget2: 4,
+        maxDD: 8,
+        drawdownType: "initial"
+      },
+      exampleTwoStandard: {
+        label: "Two Phase (8% + 5%, 10% DD)",
+        challengeType: "two",
+        fee: 500,
+        accountSize: 200000,
+        profitSplit: 80,
+        profitTarget1: 8,
+        profitTarget2: 5,
+        maxDD: 10,
+        drawdownType: "initial"
+      },
+      exampleTwoAggressive: {
+        label: "Two Phase (10% + 5%, 10% DD)",
+        challengeType: "two",
+        fee: 600,
+        accountSize: 200000,
+        profitSplit: 80,
+        profitTarget1: 10,
+        profitTarget2: 5,
+        maxDD: 10,
+        drawdownType: "initial"
+      }
+    };
+
+    const USER_TEMPLATE_STORAGE_KEY = "ttorb_challenge_templates_v1";
+
+    // ==== STATE ====
+
+    let selectedRisk = RISK_LEVELS[0];
+    let drawdownType = "initial";
+    let passChart, costChart;
+    const resultsCache = new Map();
+    let lastHelperCostR = null;
+    let userTemplates = {};
+
+    // ==== DOM ====
+
+    const riskTabsEl = document.getElementById("riskTabs");
+    const summaryEl = document.getElementById("summaryStats");
+    const tableBodyEl = document.querySelector("#resultsTable tbody");
+    const runBtn = document.getElementById("runBtn");
+    const challengePresetSelect = document.getElementById("challengePreset");
+
+    const userPresetSelect = document.getElementById("userPreset");
+    const savePresetBtn = document.getElementById("savePresetBtn");
+    const deletePresetBtn = document.getElementById("deletePresetBtn");
+
+    const helperAccountSizeInput = document.getElementById("helperAccountSize");
+    const helperRiskPctInput = document.getElementById("helperRiskPct");
+    const helperCostUSDInput = document.getElementById("helperCostUSD");
+    const helperCalcBtn = document.getElementById("helperCalcBtn");
+    const helperApplyBtn = document.getElementById("helperApplyBtn");
+    const helperOutput = document.getElementById("helperOutput");
+    const costPerTradeRInput = document.getElementById("costPerTradeR");
+
+    const shareLinkBtn = document.getElementById("shareLinkBtn");
+    const shareStatus = document.getElementById("shareStatus");
+
+    const instantRiskPctInput = document.getElementById("instRiskPct");
+    const instantMaxDayRInput = document.getElementById("instMaxDayR");
+    const instantConsistencyCapInput = document.getElementById("instConsistencyCap");
+    const instantHelperBtn = document.getElementById("instantHelperBtn");
+    const instantConsistencyOutput = document.getElementById("instantConsistencyOutput");
+
+    const fundedTargetInput = document.getElementById("fundedTarget");
+    const minTradesInput = document.getElementById("minTrades");
+
+    const avgTradesInput = document.getElementById("avgTrades");
+    const avgTradesPeriodSelect = document.getElementById("avgTradesPeriod");
+
+    // Risk tabs
+    RISK_LEVELS.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pill-btn" + (r === selectedRisk ? " active" : "");
+      btn.textContent = r + "%";
+      btn.dataset.riskValue = r;
+      btn.addEventListener("click", () => {
+        selectedRisk = r;
+        document
+          .querySelectorAll("#riskTabs .pill-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderSummary();
+        highlightTableRow();
+      });
+      riskTabsEl.appendChild(btn);
+    });
+
+    // Drawdown toggle
+    document.querySelectorAll("[data-ddtype]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        drawdownType = btn.dataset.ddtype;
+        document
+          .querySelectorAll("[data-ddtype]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    // Example template handler
+    challengePresetSelect.addEventListener("change", () => {
+      const id = challengePresetSelect.value;
+      if (id === "custom") return;
+      const p = CHALLENGE_PRESETS[id];
+      if (!p) return;
+      applyTemplateToForm(p);
+    });
+
+    function applyTemplateToForm(p) {
+      document.getElementById("challengeType").value = p.challengeType;
+      document.getElementById("fee").value = p.fee;
+      document.getElementById("accountSize").value = p.accountSize;
+      document.getElementById("profitSplit").value = p.profitSplit;
+      document.getElementById("maxDD").value = p.maxDD;
+
+      if (typeof p.profitTarget1 === "number") {
+        document.getElementById("profitTargetPhase1").value = p.profitTarget1;
+      }
+      if (typeof p.profitTarget2 === "number") {
+        document.getElementById("profitTargetPhase2").value = p.profitTarget2;
+      }
+      if (typeof p.minTrades === "number") {
+        minTradesInput.value = p.minTrades;
+      }
+      if (typeof p.avgTrades === "number") {
+        avgTradesInput.value = p.avgTrades;
+      }
+      if (p.avgTradesPeriod) {
+        avgTradesPeriodSelect.value = p.avgTradesPeriod;
+      }
+
+      if (p.drawdownType) {
+        drawdownType = p.drawdownType;
+        document
+          .querySelectorAll("[data-ddtype]")
+          .forEach((b) => {
+            b.classList.toggle("active", b.dataset.ddtype === drawdownType);
+          });
+      }
+
+      if (typeof p.costPerTradeR === "number") {
+        costPerTradeRInput.value = p.costPerTradeR.toFixed(3);
+      }
+    }
+
+    // Helper calculator: convert $ costs to R
+    helperCalcBtn.addEventListener("click", () => {
+      const acc = Number(helperAccountSizeInput.value);
+      const riskPct = Number(helperRiskPctInput.value);
+      const costUSD = Number(helperCostUSDInput.value);
+
+      if (!acc || acc <= 0 || !riskPct || riskPct <= 0 || !costUSD || costUSD <= 0) {
+        helperOutput.textContent = "Enter a positive account size, risk % and cost in $.";
+        return;
+      }
+
+      const riskDollar = acc * (riskPct / 100);
+      if (riskDollar <= 0) {
+        helperOutput.textContent = "Risk per trade in $ must be greater than zero.";
+        return;
+      }
+
+      const costR = costUSD / riskDollar;
+      lastHelperCostR = costR;
+
+      helperOutput.textContent =
+        "Risk per trade ≈ $" + riskDollar.toFixed(2) +
+        ". With $" + costUSD.toFixed(2) + " average costs, that’s " +
+        costR.toFixed(3) + "R per trade.";
+    });
+
+    helperApplyBtn.addEventListener("click", () => {
+      if (lastHelperCostR == null) {
+        helperOutput.textContent = "Calculate first, then apply.";
+        return;
+      }
+      costPerTradeRInput.value = lastHelperCostR.toFixed(3);
+      helperOutput.textContent += "   Applied to the R field.";
+    });
+
+    runBtn.addEventListener("click", () => runSimulation());
+
+    // ==== USER TEMPLATES (localStorage) ====
+
+    function loadUserTemplates() {
+      try {
+        const raw = localStorage.getItem(USER_TEMPLATE_STORAGE_KEY);
+        if (!raw) {
+          userTemplates = {};
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          userTemplates = parsed;
+        } else {
+          userTemplates = {};
+        }
+      } catch (e) {
+        console.error("Error loading user templates:", e);
+        userTemplates = {};
+      }
+    }
+
+    function saveUserTemplatesStore() {
+      try {
+        localStorage.setItem(USER_TEMPLATE_STORAGE_KEY, JSON.stringify(userTemplates));
+      } catch (e) {
+        console.error("Error saving user templates:", e);
+      }
+    }
+
+    function renderUserTemplatesDropdown() {
+      userPresetSelect.innerHTML = "";
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = userTemplates && Object.keys(userTemplates).length
+        ? "— Select a saved template —"
+        : "— No saved templates yet —";
+      userPresetSelect.appendChild(defaultOption);
+
+      Object.keys(userTemplates).forEach((key) => {
+        const tpl = userTemplates[key];
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = tpl.name || key;
+        userPresetSelect.appendChild(opt);
+      });
+    }
+
+    // Save current form as a new template
+    savePresetBtn.addEventListener("click", () => {
+      const name = prompt("Template name (e.g. 'My BG 200K – current rules'):");
+      if (!name) return;
+
+      const tpl = {
+        name,
+        challengeType: document.getElementById("challengeType").value,
+        fee: Number(document.getElementById("fee").value) || 0,
+        accountSize: Number(document.getElementById("accountSize").value) || 0,
+        profitSplit: Number(document.getElementById("profitSplit").value) || 0,
+        profitTarget1: Number(document.getElementById("profitTargetPhase1").value) || 0,
+        profitTarget2: Number(document.getElementById("profitTargetPhase2").value) || 0,
+        maxDD: Number(document.getElementById("maxDD").value) || 0,
+        drawdownType,
+        costPerTradeR: Number(costPerTradeRInput.value) || 0,
+        minTrades: Number(minTradesInput.value) || 0,
+        avgTrades: Number(avgTradesInput.value) || 0,
+        avgTradesPeriod: avgTradesPeriodSelect.value
+      };
+
+      const key = Date.now().toString() + "_" + name;
+      userTemplates[key] = tpl;
+      saveUserTemplatesStore();
+      renderUserTemplatesDropdown();
+      userPresetSelect.value = key;
+    });
+
+    // Load selected user template
+    userPresetSelect.addEventListener("change", () => {
+      const key = userPresetSelect.value;
+      if (!key || !userTemplates[key]) return;
+      const tpl = userTemplates[key];
+      applyTemplateToForm(tpl);
+    });
+
+    // Delete selected template
+    deletePresetBtn.addEventListener("click", () => {
+      const key = userPresetSelect.value;
+      if (!key || !userTemplates[key]) return;
+      const confirmDelete = confirm(
+        "Delete template '" + (userTemplates[key].name || key) + "'?"
+      );
+      if (!confirmDelete) return;
+      delete userTemplates[key];
+      saveUserTemplatesStore();
+      renderUserTemplatesDropdown();
+    });
+
+    function initUserTemplates() {
+      loadUserTemplates();
+      renderUserTemplatesDropdown();
+    }
+
+    // ==== SHAREABLE LINK ====
+
+    function getCurrentConfig() {
+      return {
+        wr: Number(document.getElementById("winRate").value) || 0,
+        rr: Number(document.getElementById("rr").value) || 0,
+        c: Number(costPerTradeRInput.value) || 0,
+        ct: document.getElementById("challengeType").value,
+        fee: Number(document.getElementById("fee").value) || 0,
+        t1: Number(document.getElementById("profitTargetPhase1").value) || 0,
+        t2: Number(document.getElementById("profitTargetPhase2").value) || 0,
+        dd: Number(document.getElementById("maxDD").value) || 0,
+        ddt: drawdownType,
+        as: Number(document.getElementById("accountSize").value) || 0,
+        ps: Number(document.getElementById("profitSplit").value) || 0,
+        ft: Number(fundedTargetInput.value) || 0,
+        mt: Number(minTradesInput.value) || 0,
+        at: Number(avgTradesInput.value) || 0,
+        atp: avgTradesPeriodSelect.value
+      };
+    }
+
+    function buildShareUrl() {
+      const cfg = getCurrentConfig();
+      const base = window.location.origin + window.location.pathname;
+      const params = new URLSearchParams();
+
+      if (cfg.wr) params.set("wr", cfg.wr.toFixed(2));
+      if (cfg.rr) params.set("rr", cfg.rr.toFixed(2));
+      if (cfg.c) params.set("c", cfg.c.toFixed(3));
+      if (cfg.ct) params.set("ct", cfg.ct);
+      if (cfg.fee) params.set("fee", cfg.fee.toFixed(0));
+      if (cfg.t1) params.set("t1", cfg.t1.toFixed(2));
+      if (cfg.t2) params.set("t2", cfg.t2.toFixed(2));
+      if (cfg.dd) params.set("dd", cfg.dd.toFixed(2));
+      if (cfg.ddt) params.set("ddt", cfg.ddt);
+      if (cfg.as) params.set("as", cfg.as.toFixed(0));
+      if (cfg.ps) params.set("ps", cfg.ps.toFixed(2));
+      if (cfg.ft) params.set("ft", cfg.ft.toFixed(2));
+      if (cfg.mt) params.set("mt", cfg.mt.toFixed(0));
+      if (cfg.at) params.set("at", cfg.at.toFixed(2));
+      if (cfg.atp) params.set("atp", cfg.atp);
+
+      const qs = params.toString();
+      return qs ? base + "?" + qs : base;
+    }
+
+    function applyConfigFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.toString()) return;
+
+        const wr = parseFloat(params.get("wr"));
+        const rr = parseFloat(params.get("rr"));
+        const c = parseFloat(params.get("c"));
+        const ct = params.get("ct");
+        const fee = parseFloat(params.get("fee"));
+        const t1 = parseFloat(params.get("t1"));
+        const t2 = parseFloat(params.get("t2"));
+        const dd = parseFloat(params.get("dd"));
+        const ddt = params.get("ddt");
+        const as = parseFloat(params.get("as"));
+        const ps = parseFloat(params.get("ps"));
+        const ft = parseFloat(params.get("ft"));
+        const mt = parseFloat(params.get("mt"));
+        const at = parseFloat(params.get("at"));
+        const atp = params.get("atp");
+
+        if (!isNaN(wr)) document.getElementById("winRate").value = wr;
+        if (!isNaN(rr)) document.getElementById("rr").value = rr;
+        if (!isNaN(c)) costPerTradeRInput.value = c;
+
+        if (ct) document.getElementById("challengeType").value = ct;
+        if (!isNaN(fee)) document.getElementById("fee").value = fee;
+        if (!isNaN(t1)) document.getElementById("profitTargetPhase1").value = t1;
+        if (!isNaN(t2)) document.getElementById("profitTargetPhase2").value = t2;
+        if (!isNaN(dd)) document.getElementById("maxDD").value = dd;
+        if (!isNaN(as)) document.getElementById("accountSize").value = as;
+        if (!isNaN(ps)) document.getElementById("profitSplit").value = ps;
+        if (!isNaN(ft)) fundedTargetInput.value = ft;
+        if (!isNaN(mt)) minTradesInput.value = mt;
+        if (!isNaN(at)) avgTradesInput.value = at;
+        if (atp === "day" || atp === "week") avgTradesPeriodSelect.value = atp;
+
+        if (ddt === "initial" || ddt === "trailing") {
+          drawdownType = ddt;
+          document
+            .querySelectorAll("[data-ddtype]")
+            .forEach((b) => {
+              b.classList.toggle("active", b.dataset.ddtype === drawdownType);
+            });
+        }
+      } catch (e) {
+        console.error("Error applying config from URL:", e);
+      }
+    }
+
+    shareLinkBtn.addEventListener("click", () => {
+      const url = buildShareUrl();
+      shareStatus.textContent = "";
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+          .then(() => {
+            shareStatus.textContent = "Link copied to clipboard.";
+          })
+          .catch(() => {
+            shareStatus.textContent = "Could not access clipboard. URL shown in prompt.";
+            window.prompt("Copy this URL:", url);
+          });
+      } else {
+        shareStatus.textContent = "Clipboard not supported. URL shown in prompt.";
+        window.prompt("Copy this URL:", url);
+      }
+    });
+
+    // ==== INSTANT CONSISTENCY HELPER ====
+
+    const instantHelperBtn = document.getElementById("instantHelperBtn");
+    const instantConsistencyOutput = document.getElementById("instantConsistencyOutput");
+
+    instantHelperBtn.addEventListener("click", () => {
+      const challengeType = document.getElementById("challengeType").value;
+      const riskPct = Number(instantRiskPctInput.value);
+      const maxDayR = Number(instantMaxDayRInput.value);
+      const cap = Number(instantConsistencyCapInput.value);
+      const accountSize = Number(document.getElementById("accountSize").value) || 0;
+
+      if (!riskPct || !maxDayR || !cap || cap <= 0) {
+        instantConsistencyOutput.textContent =
+          "Enter risk %, biggest winning day in R and a positive consistency cap (e.g. 20).";
+        return;
+      }
+
+      const maxDayPct = riskPct * maxDayR;
+      const requiredTotalReturnPct = maxDayPct / (cap / 100);
+      const requiredTotalReturnPctRounded = requiredTotalReturnPct.toFixed(2);
+
+      let msg =
+        "With a biggest day of " + maxDayR.toFixed(2) + "R at " +
+        riskPct.toFixed(2) + "% risk and a " + cap.toFixed(1) +
+        "% consistency cap, your biggest day is " + maxDayPct.toFixed(2) +
+        "% of the account. To keep that at " + cap.toFixed(1) +
+        "% of total profit, you must reach about " +
+        requiredTotalReturnPctRounded + "% total return";
+
+      if (accountSize > 0) {
+        const profitUSD = accountSize * (requiredTotalReturnPct / 100);
+        msg += " (≈ $" + profitUSD.toFixed(0) + ")";
+      }
+      msg += " before taking a payout.";
+
+      instantConsistencyOutput.textContent = msg;
+
+      fundedTargetInput.value = requiredTotalReturnPctRounded;
+      if (challengeType === "instant") {
+        document.getElementById("profitTargetPhase1").value = requiredTotalReturnPctRounded;
+      }
+    });
+
+    // ==== SIMULATION CORE ====
+
+    function runSimulation() {
+      runBtn.disabled = true;
+      runBtn.textContent = "Simulating...";
+
+      resultsCache.clear();
+
+      const winRate = Number(document.getElementById("winRate").value) / 100;
+      const rr = Number(document.getElementById("rr").value);
+      const costPerTradeR = Number(costPerTradeRInput.value) || 0;
+
+      const fee = Number(document.getElementById("fee").value);
+      const profitTarget1Pct =
+        Number(document.getElementById("profitTargetPhase1").value) / 100;
+      const profitTarget2Pct =
+        Number(document.getElementById("profitTargetPhase2").value) / 100;
+      const maxDDPct = Number(document.getElementById("maxDD").value) / 100;
+      const challengeType = document.getElementById("challengeType").value;
+      const minTrades = Number(minTradesInput.value) || 0;
+
+      if (
+        winRate <= 0 ||
+        rr <= 0 ||
+        profitTarget1Pct <= 0 ||
+        maxDDPct <= 0
+      ) {
+        alert("Please enter positive values for win rate, R:R, target and drawdown.");
+        runBtn.disabled = false;
+        runBtn.textContent = "Run Simulation";
+        return;
+      }
+
+      RISK_LEVELS.forEach((riskPct) => {
+        const stats = simulateRiskLevel({
+          winRate,
+          rr,
+          costPerTradeR,
+          riskPct: riskPct / 100,
+          profitTarget1Pct,
+          profitTarget2Pct,
+          maxDDPct,
+          fee,
+          challengeType,
+          minTrades
+        });
+        resultsCache.set(riskPct, stats);
+      });
+
+      renderSummary();
+      renderTable();
+      renderCharts();
+
+      runBtn.disabled = false;
+      runBtn.textContent = "Run Simulation";
+    }
+
+    function simulateRiskLevel(params) {
+      let successCount = 0;
+      let tradesOnSuccess = [];
+
+      for (let i = 0; i < NUM_SIMULATIONS; i++) {
+        const result = simulateAttempt(params);
+        if (result.passed) {
+          successCount++;
+          tradesOnSuccess.push(result.trades);
+        }
+      }
+
+      const passRate = successCount / NUM_SIMULATIONS;
+      const avgTradesSuccess =
+        tradesOnSuccess.length > 0
+          ? tradesOnSuccess.reduce((a, b) => a + b, 0) / tradesOnSuccess.length
+          : NaN;
+
+      const expectedAttempts = passRate > 0 ? 1 / passRate : Infinity;
+      const expectedCost =
+        passRate > 0 ? expectedAttempts * params.fee : Infinity;
+
+      const attempts90 =
+        passRate > 0 ? Math.ceil(Math.log(1 - 0.9) / Math.log(1 - passRate)) : Infinity;
+      const cost90 = attempts90 * params.fee;
+      const expectedTradesToFund =
+        isFinite(attempts90) && !isNaN(avgTradesSuccess)
+          ? attempts90 * avgTradesSuccess
+          : NaN;
+
+      const risk5Failures =
+        passRate > 0 ? Math.pow(1 - passRate, 5) * 100 : 100;
+
+      return {
+        passRate,
+        avgTradesSuccess,
+        expectedTradesToFund,
+        expectedCost,
+        cost90,
+        risk5Failures
+      };
+    }
+
+    function simulateAttempt({
+      winRate,
+      rr,
+      costPerTradeR,
+      riskPct,
+      profitTarget1Pct,
+      profitTarget2Pct,
+      maxDDPct,
+      challengeType,
+      minTrades
+    }) {
+      if (challengeType === "two") {
+        const phase1 = simulateSinglePhase({
+          winRate,
+          rr,
+          costPerTradeR,
+          riskPct,
+          profitTargetPct: profitTarget1Pct,
+          maxDDPct,
+          minTrades: 0
+        });
+        if (!phase1.passed) return { passed: false, trades: phase1.trades };
+
+        const phase2 = simulateSinglePhase({
+          winRate,
+          rr,
+          costPerTradeR,
+          riskPct,
+          profitTargetPct: profitTarget2Pct > 0 ? profitTarget2Pct : profitTarget1Pct,
+          maxDDPct,
+          minTrades
+        });
+
+        return { passed: phase2.passed, trades: phase1.trades + phase2.trades };
+      } else {
+        return simulateSinglePhase({
+          winRate,
+          rr,
+          costPerTradeR,
+          riskPct,
+          profitTargetPct: profitTarget1Pct,
+          maxDDPct,
+          minTrades
+        });
+      }
+    }
+
+    function simulateSinglePhase({
+      winRate,
+      rr,
+      costPerTradeR,
+      riskPct,
+      profitTargetPct,
+      maxDDPct,
+      minTrades
+    }) {
+      let startBalance = 1;
+      let balance = startBalance;
+      let peak = startBalance;
+      let trades = 0;
+
+      while (trades < MAX_TRADES_PER_ATTEMPT) {
+        trades++;
+        const riskDollar = balance * riskPct;
+        const win = Math.random() < winRate;
+
+        if (win) {
+          balance += riskDollar * (rr - costPerTradeR);
+        } else {
+          balance -= riskDollar * (1 + costPerTradeR);
+        }
+
+        if (balance > peak) peak = balance;
+
+        if (
+          balance >= startBalance * (1 + profitTargetPct) &&
+          trades >= (minTrades || 0)
+        ) {
+          return { passed: true, trades };
+        }
+
+        const ref = drawdownType === "initial" ? startBalance : peak;
+        const dd = (balance - ref) / ref;
+        if (dd <= -maxDDPct) {
+          return { passed: false, trades };
+        }
+      }
+
+      return { passed: false, trades: MAX_TRADES_PER_ATTEMPT };
+    }
+
+    // ==== RENDERING ====
+
+    function renderSummary() {
+      const stats = resultsCache.get(selectedRisk);
+      if (!stats) {
+        summaryEl.innerHTML =
+          "<div class='stat-card'>Run the simulation to see results.</div>";
+        return;
+      }
+      const fee = Number(document.getElementById("fee").value);
+      const accountSize = Number(document.getElementById("accountSize").value);
+      const profitSplit = Number(document.getElementById("profitSplit").value) / 100;
+      const fundedTarget = Number(fundedTargetInput.value) / 100;
+
+      const breakEvenReturn =
+        accountSize > 0 && fee > 0 && profitSplit > 0
+          ? (fee / (accountSize * profitSplit)) * 100
+          : NaN;
+
+      const payoutPotential =
+        accountSize > 0 && profitSplit > 0 && fundedTarget > 0
+          ? accountSize * fundedTarget * profitSplit
+          : NaN;
+
+      // Time to funding (from trades + average trades frequency)
+      let expectedDaysToFund = NaN;
+      let expectedWeeksToFund = NaN;
+      const avgTrades = Number(avgTradesInput.value) || 0;
+      const period = avgTradesPeriodSelect.value;
+
+      if (!isNaN(stats.expectedTradesToFund) && stats.expectedTradesToFund > 0 && avgTrades > 0) {
+        let tradesPerDay;
+        if (period === "day") {
+          tradesPerDay = avgTrades;
+        } else {
+          tradesPerDay = avgTrades / 5; // trades / week -> trades / trading day
+        }
+        if (tradesPerDay > 0) {
+          expectedDaysToFund = stats.expectedTradesToFund / tradesPerDay;
+          expectedWeeksToFund = expectedDaysToFund / 5;
+        }
+      }
+
+      summaryEl.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Pass Rate</div>
+          <div class="stat-value">${(stats.passRate * 100).toFixed(1)}%</div>
+          <div class="stat-note">Selected risk: ${selectedRisk.toFixed(1)}% per trade.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trades per Successful Attempt</div>
+          <div class="stat-value">
+            ${isNaN(stats.avgTradesSuccess) ? "—" : stats.avgTradesSuccess.toFixed(0)}
+          </div>
+          <div class="stat-note">Typical trades in a winning run.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Expected Trades to Get Funded</div>
+          <div class="stat-value">
+            ${isNaN(stats.expectedTradesToFund) ? "—" : stats.expectedTradesToFund.toFixed(0)}
+          </div>
+          <div class="stat-note">Approximate 90%-confidence estimate.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Time to Funding (90% conf.)</div>
+          <div class="stat-value">
+            ${isNaN(expectedWeeksToFund) ? "—" : expectedWeeksToFund.toFixed(1) + " wks"}
+          </div>
+          <div class="stat-note">
+            Based on ${
+              avgTrades > 0
+                ? avgTrades.toFixed(2) + " trades / " + (period === "day" ? "day" : "week")
+                : "your average trades setting"
+            } and the trade counts above.
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Expected Cost</div>
+          <div class="stat-value">$${stats.expectedCost.toFixed(0)}</div>
+          <div class="stat-note">Mathematical average spend.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">90% Confidence Cost</div>
+          <div class="stat-value">$${stats.cost90.toFixed(0)}</div>
+          <div class="stat-note">Budget this to have ~90% chance of success.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">5+ Consecutive Failure Risk</div>
+          <div class="stat-value">${stats.risk5Failures.toFixed(1)}%</div>
+          <div class="stat-note">Probability of five or more failed attempts in a row.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Break-Even on Funded Account</div>
+          <div class="stat-value">
+            ${isNaN(breakEvenReturn) ? "—" : breakEvenReturn.toFixed(2)}%
+          </div>
+          <div class="stat-note">Return needed on funded account (after split) to recover one fee.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Payout Projection</div>
+          <div class="stat-value">
+            ${isNaN(payoutPotential) ? "—" : "$" + payoutPotential.toFixed(0)}
+          </div>
+          <div class="stat-note">
+            If you make ${isNaN(fundedTarget * 100) ? "–" : (fundedTarget * 100).toFixed(1)}%
+            on the funded account at your profit split.
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTable() {
+      tableBodyEl.innerHTML = "";
+      RISK_LEVELS.forEach((risk) => {
+        const stats = resultsCache.get(risk);
+        if (!stats) return;
+        const row = document.createElement("tr");
+        if (risk === selectedRisk) row.classList.add("highlight");
+        row.dataset.risk = risk;
+        row.innerHTML = `
+          <td>${risk.toFixed(1)}%</td>
+          <td>${(stats.passRate * 100).toFixed(1)}%</td>
+          <td>${isNaN(stats.avgTradesSuccess) ? "—" : stats.avgTradesSuccess.toFixed(0)}</td>
+          <td>${isNaN(stats.expectedTradesToFund) ? "—" : stats.expectedTradesToFund.toFixed(0)}</td>
+          <td>$${stats.expectedCost.toFixed(0)}</td>
+          <td>$${stats.cost90.toFixed(0)}</td>
+          <td>${stats.risk5Failures.toFixed(1)}%</td>
+        `;
+        row.addEventListener("click", () => {
+          selectedRisk = risk;
+          document
+            .querySelectorAll("#riskTabs .pill-btn")
+            .forEach((b) => {
+              b.classList.toggle(
+                "active",
+                Number(b.dataset.riskValue) === risk
+              );
+            });
+          renderSummary();
+          highlightTableRow();
+        });
+        tableBodyEl.appendChild(row);
+      });
+    }
+
+    function highlightTableRow() {
+      document
+        .querySelectorAll("#resultsTable tbody tr")
+        .forEach((tr) => tr.classList.remove("highlight"));
+      const target = document.querySelector(
+        `#resultsTable tbody tr[data-risk="${selectedRisk}"]`
+      );
+      if (target) target.classList.add("highlight");
+    }
+
+    function renderCharts() {
+      const labels = RISK_LEVELS.map((r) => r + "%");
+      const passRates = RISK_LEVELS.map((r) => {
+        const s = resultsCache.get(r);
+        return s ? (s.passRate * 100).toFixed(1) : 0;
+      });
+      const costs90 = RISK_LEVELS.map((r) => {
+        const s = resultsCache.get(r);
+        return s ? s.cost90.toFixed(0) : 0;
+      });
+
+      const passCtx = document.getElementById("passChart").getContext("2d");
+      const costCtx = document.getElementById("costChart").getContext("2d");
+
+      if (passChart) passChart.destroy();
+      if (costChart) costChart.destroy();
+
+      passChart = new Chart(passCtx, {
+        type: "line",
+        data: { labels, datasets: [{ label: "Pass Rate", data: passRates, fill: false }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#9ca3af", font: { size: 10 } },
+              grid: { color: "#1f2937" }
+            },
+            y: {
+              ticks: {
+                color: "#9ca3af",
+                font: { size: 10 },
+                callback: v => v + "%"
+              },
+              grid: { color: "#1f2937" },
+              suggestedMin: 0,
+              suggestedMax: 100
+            }
+          }
+        }
+      });
+
+      costChart = new Chart(costCtx, {
+        type: "bar",
+        data: { labels, datasets: [{ label: "90% Confidence Cost", data: costs90 }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#9ca3af", font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              ticks: {
+                color: "#9ca3af",
+                font: { size: 10 },
+                callback: v => "$" + v
+              },
+              grid: { color: "#1f2937" }
+            }
+          }
+        }
+      });
+    }
+
+    // Init
+    initUserTemplates();
+    applyConfigFromUrl();
+    renderSummary();
+  </script>
+</body>
+</html>
+
