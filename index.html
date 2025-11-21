@@ -1,228 +1,596 @@
-/****************************************************
- * TRADING EQUITY CURVE SIMULATOR – FULL JAVASCRIPT
- ****************************************************/
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trade The ORB – Trading Equity Curve Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #050712;
+      --bg-panel: #0B1020;
+      --bg-panel-soft: #111521;
+      --border: #1A2030;
 
-const NUM_PATHS = 80; // number of Monte Carlo equity paths
-let equityChart;
+      --accent: #2EC7FF;
+      --accent2: #0078D4;
+      --accent-soft: rgba(46,199,255,0.2);
 
-// Utility: random float
-function rand() {
-  return Math.random();
-}
+      --text-main: #FFFFFF;
+      --text-muted: #A0A8B8;
+      --text-soft: #7A8294;
 
-// Utility: calculate max drawdown
-function calculateMaxDrawdown(arr) {
-  let peak = arr[0];
-  let maxDD = 0;
-
-  for (let v of arr) {
-    if (v > peak) peak = v;
-    let dd = (peak - v) / peak;
-    if (dd > maxDD) maxDD = dd;
-  }
-  return maxDD * 100;
-}
-
-// Utility: longest win/loss streaks
-function calculateStreaks(results) {
-  let maxWin = 0, maxLoss = 0;
-  let curWin = 0, curLoss = 0;
-
-  for (let r of results) {
-    if (r > 0) {
-      curWin++;  
-      maxWin = Math.max(maxWin, curWin);
-      curLoss = 0;
-    } else {
-      curLoss++;
-      maxLoss = Math.max(maxLoss, curLoss);
-      curWin = 0;
+      --success: #40D48B;
+      --danger: #FF7070;
+      --warning: #FACC15;
     }
-  }
 
-  return { maxWin, maxLoss };
-}
+    * { box-sizing: border-box; }
 
-// RUN THE SIMULATION
-function runSimulation() {
-  const winRate = parseFloat(document.getElementById("winRate").value) / 100;
-  const rr = parseFloat(document.getElementById("rr").value);
-  const riskPct = parseFloat(document.getElementById("riskPct").value) / 100;
-  const numTrades = parseInt(document.getElementById("numTrades").value);
-  const initialCapital = parseFloat(document.getElementById("initialCapital").value);
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background:
+        radial-gradient(circle at top, #101624 0, #020617 55%),
+        radial-gradient(circle at bottom, #020617 0, #000000 70%);
+      color: var(--text-main);
+    }
 
-  if (isNaN(winRate) || isNaN(rr) || isNaN(riskPct) || isNaN(numTrades) || isNaN(initialCapital)) {
-    alert("Please enter valid numbers.");
-    return;
-  }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.75rem 1.25rem 3rem;
+    }
 
-  const allPaths = [];
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
 
-  for (let p = 0; p < NUM_PATHS; p++) {
-    let balance = initialCapital;
-    let curve = [];
-    let tradeResults = [];
+    .logo-main {
+      width: 120px;
+      max-width: 35vw;
+      margin-bottom: 0.75rem;
+      filter: drop-shadow(0 0 18px rgba(46,199,255,0.25));
+    }
 
-    for (let i = 0; i < numTrades; i++) {
-      const riskAmount = balance * riskPct;
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.6rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    header h1 span { color: var(--accent); }
 
-      if (rand() < winRate) {
-        balance += riskAmount * rr;
-        tradeResults.push(riskAmount * rr);
-      } else {
-        balance -= riskAmount;
-        tradeResults.push(-riskAmount);
+    .tagline {
+      margin-top: 0.4rem;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+    }
+
+    header p {
+      margin-top: 0.6rem;
+      color: var(--text-soft);
+      font-size: 0.86rem;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.18rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(31,41,55,0.9);
+      color: var(--text-soft);
+      margin-bottom: 0.35rem;
+    }
+
+    /* top nav between tools */
+    .top-nav {
+      margin-top: 0.9rem;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .top-nav a {
+      padding: 0.4rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: #020617;
+    }
+    .top-nav a.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 15px rgba(46,199,255,0.4);
+    }
+    .top-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+      gap: 1.25rem;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      box-shadow: 0 24px 45px rgba(0,0,0,0.35);
+    }
+
+    .card h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .field-group { margin-bottom: 0.65rem; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      margin-bottom: 0.15rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.38rem 0.5rem;
+      border-radius: 0.55rem;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text-main);
+      font-size: 0.88rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+    }
+
+    .primary-btn {
+      margin-top: 0.9rem;
+      padding: 0.65rem 1.5rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #020617;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(0,0,0,0.55);
+      transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
+      width: 100%;
+    }
+    .primary-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 24px 40px rgba(0,0,0,0.7);
+    }
+    .primary-btn:disabled {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .results-tabs {
+      display: flex;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+    .tab-btn {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #020617;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #020617;
+      border-color: transparent;
+      font-weight: 600;
+      box-shadow: 0 0 15px rgba(46,199,255,0.4);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .stat-card {
+      border-radius: 0.85rem;
+      background: var(--bg-panel-soft);
+      border: 1px solid var(--border);
+      padding: 0.7rem 0.8rem;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .stat-value {
+      margin-top: 0.15rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .stat-note {
+      margin-top: 0.1rem;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .chart-card {
+      margin-top: 1.5rem;
+      background: var(--bg-panel);
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      padding: 1rem 1.25rem 1.4rem;
+      box-shadow: 0 24px 45px rgba(0,0,0,0.4);
+    }
+
+    .chart-title {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .chart-subtitle {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      margin-bottom: 0.7rem;
+    }
+
+    .probability-row {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .prob-card {
+      border-radius: 0.85rem;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 0.7rem 0.8rem;
+      text-align: center;
+    }
+    .prob-label {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      margin-bottom: 0.35rem;
+    }
+    .prob-value {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      color: var(--text-soft);
+      font-size: 0.78rem;
+    }
+
+    .orb-banner {
+      max-width: 520px;
+      width: 100%;
+      border-radius: 0.75rem;
+      margin: 0 auto 0.5rem;
+      display: block;
+      box-shadow: 0 22px 45px rgba(0,0,0,0.75);
+    }
+
+    .footer-text-strong {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <img src="tradetheornlogo3.png" alt="Trade The ORB" class="logo-main" />
+      <div class="badge">Equity Curve · Monte Carlo Engine</div>
+      <h1><span>Trading Equity Curve Simulation</span></h1>
+      <div class="tagline">Precision. Momentum. Mindset.</div>
+      <p>
+        Monte Carlo simulation of your trading strategy across a series of trades.
+        Explore best-case, most probable, and worst-case equity curves using
+        your real win rate, risk-reward, risk per trade and starting capital.
+      </p>
+
+      <!-- nav to prop-firm simulator -->
+      <nav class="top-nav">
+        <a href="index.html" class="active">Equity Curve Simulator</a>
+        <a href="prop-sim.html">Prop Firm Challenge Simulator (Beta)</a>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <!-- PARAMETERS -->
+      <div class="card">
+        <h2>Simulation Parameters</h2>
+        <div class="grid">
+          <div class="field-group">
+            <label>Win Rate (%)</label>
+            <input id="winRate" type="number" value="48" min="1" max="99" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Risk Reward Ratio (1 : X)</label>
+            <input id="rr" type="number" value="1.6" min="0.1" step="0.1" />
+          </div>
+        </div>
+        <div class="grid">
+          <div class="field-group">
+            <label>Risk per Trade (%)</label>
+            <input id="riskPct" type="number" value="0.5" min="0.01" step="0.01" />
+          </div>
+          <div class="field-group">
+            <label>Number of Trades</label>
+            <input id="numTrades" type="number" value="100" min="1" step="1" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Initial Capital ($)</label>
+          <input id="initialCapital" type="number" value="200000" min="100" step="100" />
+        </div>
+
+        <button id="runBtn" class="primary-btn">Run Simulation</button>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="card">
+        <h2>Results</h2>
+
+        <div class="results-tabs">
+          <button class="tab-btn active" data-scenario="best">Best Result</button>
+          <button class="tab-btn" data-scenario="median">Most Probable</button>
+          <button class="tab-btn" data-scenario="worst">Worst Result</button>
+        </div>
+
+        <div class="result-grid" id="resultsGrid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUITY CURVE CHART -->
+    <div class="chart-card">
+      <div class="chart-title">Trading Equity Graph Result</div>
+      <div class="chart-subtitle">
+        Multiple Monte Carlo paths using your parameters.
+        Highlighted curves show Best, Most Probable and Worst scenarios.
+      </div>
+      <canvas id="equityChart" height="200"></canvas>
+    </div>
+
+    <!-- PROBABILITY ANALYSIS -->
+    <div class="probability-row" id="probRow"></div>
+
+    <footer>
+      <img src="tradetheorblogo2.png" alt="Trade The ORB · Ross Burland" class="orb-banner" />
+      <div>
+        <span class="footer-text-strong">Trade The ORB – Equity Curve Toolkit.</span>
+        &nbsp;Built by Ross Burland, Day Trader & Performance Coach.
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const NUM_PATHS = 80;
+    let equityChart = null;
+
+    function rand() {
+      return Math.random();
+    }
+
+    function calculateMaxDrawdown(curve) {
+      let peak = curve[0];
+      let maxDD = 0;
+      for (let v of curve) {
+        if (v > peak) peak = v;
+        const dd = (peak - v) / peak;
+        if (dd > maxDD) maxDD = dd;
+      }
+      return maxDD * 100;
+    }
+
+    function simulatePath(winRate, rr, riskPct, numTrades, startCap) {
+      let balance = startCap;
+      const curve = [balance];
+      for (let i = 0; i < numTrades; i++) {
+        const riskAmt = balance * riskPct;
+        const isWin = rand() < winRate;
+        const rMultiple = isWin ? rr : -1;
+        balance += riskAmt * rMultiple;
+        curve.push(balance);
+      }
+      return curve;
+    }
+
+    function runSimulation() {
+      const winRate = parseFloat(document.getElementById("winRate").value) / 100;
+      const rr = parseFloat(document.getElementById("rr").value);
+      const riskPct = parseFloat(document.getElementById("riskPct").value) / 100;
+      const numTrades = parseInt(document.getElementById("numTrades").value, 10);
+      const initialCapital = parseFloat(document.getElementById("initialCapital").value);
+
+      if (isNaN(winRate) || isNaN(rr) || isNaN(riskPct) || isNaN(numTrades) || isNaN(initialCapital)) {
+        alert("Please enter valid numbers.");
+        return;
       }
 
-      curve.push(balance);
+      const paths = [];
+      const finals = [];
+
+      for (let i = 0; i < NUM_PATHS; i++) {
+        const curve = simulatePath(winRate, rr, riskPct, numTrades, initialCapital);
+        paths.push(curve);
+        finals.push(curve[curve.length - 1]);
+      }
+
+      // sort paths by final balance
+      const indexed = finals.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+      const worst = paths[indexed[0].i];
+      const best = paths[indexed[indexed.length - 1].i];
+      const median = paths[indexed[Math.floor(indexed.length / 2)].i];
+
+      updateResults({ best, median, worst, initialCapital });
+      renderChart(paths, { best, median, worst });
+      renderProbability(finals, initialCapital);
     }
 
-    allPaths.push({
-      final: balance,
-      curve,
-      maxDD: calculateMaxDrawdown(curve),
-      streaks: calculateStreaks(tradeResults),
-      tradeResults
+    function formatMoney(x) {
+      return "$" + x.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function resultBlock(name, curve, initialCapital) {
+      const final = curve[curve.length - 1];
+      const retPct = ((final / initialCapital) - 1) * 100;
+      const maxDD = calculateMaxDrawdown(curve);
+
+      return `
+        <div class="stat-card">
+          <div class="stat-label">${name} Final Balance</div>
+          <div class="stat-value">${formatMoney(final)}</div>
+          <div class="stat-note">Return: ${retPct.toFixed(2)}% · Max DD: ${maxDD.toFixed(1)}%</div>
+        </div>
+      `;
+    }
+
+    function updateResults({ best, median, worst, initialCapital }) {
+      const container = document.getElementById("resultsGrid");
+      container.innerHTML =
+        resultBlock("Best", best, initialCapital) +
+        resultBlock("Most Probable", median, initialCapital) +
+        resultBlock("Worst", worst, initialCapital);
+    }
+
+    function renderChart(allPaths, { best, median, worst }) {
+      const ctx = document.getElementById("equityChart").getContext("2d");
+      if (equityChart) equityChart.destroy();
+
+      const labels = allPaths[0].map((_, i) => i);
+
+      const datasets = allPaths.map(p => ({
+        data: p,
+        borderColor: "rgba(255,255,255,0.08)",
+        borderWidth: 1,
+        fill: false,
+        pointRadius: 0
+      }));
+
+      function highlightDataset(curve, color) {
+        datasets.push({
+          data: curve,
+          borderColor: color,
+          borderWidth: 2.5,
+          pointRadius: 0
+        });
+      }
+
+      highlightDataset(best, "#2EC7FF");
+      highlightDataset(median, "#40D48B");
+      highlightDataset(worst, "#FF7070");
+
+      equityChart = new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: {
+              ticks: { color: "#A0A8B8" },
+              grid: { display: false }
+            },
+            y: {
+              ticks: { color: "#A0A8B8" },
+              grid: { color: "rgba(148,163,184,0.18)" }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    function renderProbability(finals, initialCapital) {
+      const row = document.getElementById("probRow");
+      const rets = finals.map(v => ((v / initialCapital) - 1) * 100);
+
+      const buckets = {
+        loss: rets.filter(x => x < 0).length,
+        small: rets.filter(x => x >= 0 && x < 20).length,
+        med: rets.filter(x => x >= 20 && x < 50).length,
+        large: rets.filter(x => x >= 50).length
+      };
+
+      function prob(label, val) {
+        const pct = (val / finals.length) * 100;
+        return `
+          <div class="prob-card">
+            <div class="prob-label">${label}</div>
+            <div class="prob-value">${pct.toFixed(1)}%</div>
+          </div>
+        `;
+      }
+
+      row.innerHTML =
+        prob("Loss Outcome", buckets.loss) +
+        prob("0–20% Gain", buckets.small) +
+        prob("20–50% Gain", buckets.med) +
+        prob("50%+ Gain", buckets.large);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("runBtn");
+      if (btn) btn.addEventListener("click", runSimulation);
     });
-  }
-
-  allPaths.sort((a, b) => a.final - b.final);
-
-  const worst = allPaths[0];
-  const median = allPaths[Math.floor(NUM_PATHS / 2)];
-  const best = allPaths[NUM_PATHS - 1];
-
-  updateResults({ best, median, worst, initialCapital });
-  renderChart(allPaths, { best, median, worst });
-  renderProbability(allPaths, initialCapital);
-}
-
-// UPDATE RESULTS SECTION
-function updateResults({ best, median, worst, initialCapital }) {
-  const container = document.getElementById("resultsGrid");
-  container.innerHTML = "";
-
-  function card(title, data) {
-    return `
-      <div class="stat-card">
-        <div class="stat-label">${title}</div>
-        <div class="stat-value">${data}</div>
-      </div>
-    `;
-  }
-
-  function scenarioBlock(name, obj) {
-    const totalReturn = ((obj.final / initialCapital - 1) * 100).toFixed(2) + "%";
-    const maxDD = obj.maxDD.toFixed(2) + "%";
-    const streaks = `${obj.streaks.maxWin}W / ${obj.streaks.maxLoss}L`;
-
-    return `
-      <div class="stat-card">
-        <div class="stat-label">${name}</div>
-        <div class="stat-value">${totalReturn}</div>
-        <div class="stat-note">Max DD: ${maxDD}</div>
-        <div class="stat-note">Streaks: ${streaks}</div>
-      </div>
-    `;
-  }
-
-  container.innerHTML =
-    scenarioBlock("Best", best) +
-    scenarioBlock("Most Probable", median) +
-    scenarioBlock("Worst", worst);
-}
-
-// RENDER CHART
-function renderChart(allPaths, { best, median, worst }) {
-  const ctx = document.getElementById("equityChart").getContext("2d");
-
-  if (equityChart) equityChart.destroy();
-
-  equityChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: allPaths[0].curve.map((_, i) => i + 1),
-      datasets: [
-        ...allPaths.map((p) => ({
-          data: p.curve,
-          borderColor: "rgba(255,255,255,0.12)",
-          borderWidth: 1,
-          fill: false,
-          pointRadius: 0
-        })),
-        {
-          data: best.curve,
-          borderColor: "#40D48B",
-          borderWidth: 3,
-          pointRadius: 0
-        },
-        {
-          data: median.curve,
-          borderColor: "#2EC7FF",
-          borderWidth: 3,
-          pointRadius: 0
-        },
-        {
-          data: worst.curve,
-          borderColor: "#FF7070",
-          borderWidth: 3,
-          pointRadius: 0
-        }
-      ]
-    },
-    options: {
-      scales: {
-        y: {
-          ticks: { color: "#A0A8B8" },
-          grid: { color: "rgba(255,255,255,0.05)" }
-        },
-        x: {
-          ticks: { color: "#A0A8B8" },
-          grid: { display: false }
-        }
-      },
-      plugins: {
-        legend: { display: false }
-      }
-    }
-  });
-}
-
-// PROBABILITY SECTION
-function renderProbability(allPaths, initialCapital) {
-  const row = document.getElementById("probRow");
-  row.innerHTML = "";
-
-  const finals = allPaths.map((p) => (p.final / initialCapital - 1) * 100);
-
-  const buckets = {
-    loss: finals.filter((x) => x < 0).length,
-    small: finals.filter((x) => x >= 0 && x < 20).length,
-    med: finals.filter((x) => x >= 20 && x < 50).length,
-    large: finals.filter((x) => x >= 50).length
-  };
-
-  function prob(label, val) {
-    const pct = ((val / finals.length) * 100).toFixed(1) + "%";
-    return `
-      <div class="prob-card">
-        <div class="prob-label">${label}</div>
-        <div class="prob-value">${pct}</div>
-      </div>
-    `;
-  }
-
-  row.innerHTML =
-    prob("Loss Outcome", buckets.loss) +
-    prob("0–20% Gain", buckets.small) +
-    prob("20–50% Gain", buckets.med) +
-    prob("50%+ Gain", buckets.large);
-}
-
-// Bind run button
-document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("runBtn");
-  if (btn) btn.addEventListener("click", runSimulation);
-});
-
-
+  </script>
+</body>
+</html>
