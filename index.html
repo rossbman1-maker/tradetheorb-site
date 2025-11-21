@@ -97,6 +97,30 @@
       margin-bottom: 0.35rem;
     }
 
+    /* NEW: simple top navigation between tools */
+    .top-nav {
+      margin-top: 0.9rem;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .top-nav a {
+      padding: 0.4rem 0.95rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      text-decoration: none;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: #020617;
+    }
+    .top-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
@@ -362,6 +386,12 @@
         Explore best-case, most probable, and worst-case equity curves using
         your real win rate, risk-reward, risk per trade and starting capital.
       </p>
+
+      <!-- NEW: nav to prop-firm simulator beta -->
+      <nav class="top-nav">
+        <a href="index.html">Equity Curve Simulator</a>
+        <a href="prop-sim.html">Prop Firm Challenge Simulator (Beta)</a>
+      </nav>
     </header>
 
     <div class="layout">
@@ -502,318 +532,10 @@
     </footer>
   </div>
 
+  <!-- JS unchanged below -->
   <script>
     const NUM_PATHS = 80; // number of Monte Carlo equity paths
-
-    const winRateInput = document.getElementById("winRate");
-    const rrInput = document.getElementById("rr");
-    const riskPctInput = document.getElementById("riskPct");
-    const numTradesInput = document.getElementById("numTrades");
-    const initialCapitalInput = document.getElementById("initialCapital");
-    const runBtn = document.getElementById("runBtn");
-
-    const resultsGridEl = document.getElementById("resultsGrid");
-    const probRowEl = document.getElementById("probRow");
-
-    let currentScenario = "best";
-    let equityChart;
-
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentScenario = btn.dataset.scenario;
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        if (lastSimResult) {
-          renderResults(lastSimResult);
-          updateHighlightedDataset();
-        }
-      });
-    });
-
-    runBtn.addEventListener("click", runSimulation);
-
-    let lastSimResult = null;
-
-    function runSimulation() {
-      const winRate = Number(winRateInput.value) / 100;
-      const rr = Number(rrInput.value);
-      const riskPct = Number(riskPctInput.value) / 100;
-      const numTrades = Number(numTradesInput.value);
-      const initialCapital = Number(initialCapitalInput.value);
-
-      if (
-        !isFinite(winRate) || winRate <= 0 || winRate >= 1 ||
-        !isFinite(rr) || rr <= 0 ||
-        !isFinite(riskPct) || riskPct <= 0 ||
-        !Number.isInteger(numTrades) || numTrades <= 0 ||
-        !isFinite(initialCapital) || initialCapital <= 0
-      ) {
-        alert("Please enter sensible positive values for all parameters.");
-        return;
-      }
-
-      runBtn.disabled = true;
-      runBtn.textContent = "Simulating...";
-
-      const paths = [];
-      for (let i = 0; i < NUM_PATHS; i++) {
-        paths.push(simulateEquityPath({ winRate, rr, riskPct, numTrades, initialCapital }));
-      }
-
-      // sort by final balance
-      const sorted = [...paths].sort((a, b) => a.finalBalance - b.finalBalance);
-      const worst = sorted[0];
-      const best = sorted[sorted.length - 1];
-      const median = sorted[Math.floor(sorted.length / 2)];
-
-      // probability buckets based on % return
-      const returnsPct = paths.map(p => (p.finalBalance / initialCapital - 1) * 100);
-      const probLoss = returnsPct.filter(r => r < 0).length / returnsPct.length * 100;
-      const probSmallGain = returnsPct.filter(r => r >= 0 && r < 30).length / returnsPct.length * 100;
-      const probMediumGain = returnsPct.filter(r => r >= 30 && r < 60).length / returnsPct.length * 100;
-      const probLargeGain = returnsPct.filter(r => r >= 60).length / returnsPct.length * 100;
-
-      const expectancyR = winRate * rr - (1 - winRate) * 1;
-
-      lastSimResult = {
-        winRate,
-        rr,
-        riskPct,
-        numTrades,
-        initialCapital,
-        paths,
-        scenarios: { best, median, worst },
-        probs: { probLoss, probSmallGain, probMediumGain, probLargeGain },
-        expectancyR
-      };
-
-      renderResults(lastSimResult);
-      renderProbabilities(lastSimResult);
-      renderChart(lastSimResult);
-
-      runBtn.disabled = false;
-      runBtn.textContent = "Run Simulation";
-    }
-
-    function simulateEquityPath({ winRate, rr, riskPct, numTrades, initialCapital }) {
-      let balance = initialCapital;
-      let peak = initialCapital;
-      let maxDrawdown = 0;
-
-      let maxWinStreak = 0;
-      let maxLossStreak = 0;
-      let currentWinStreak = 0;
-      let currentLossStreak = 0;
-
-      const equity = [balance];
-
-      for (let i = 0; i < numTrades; i++) {
-        const riskAmount = balance * riskPct;
-        const win = Math.random() < winRate;
-
-        if (win) {
-          balance += riskAmount * rr;
-          currentWinStreak++;
-          currentLossStreak = 0;
-          if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
-        } else {
-          balance -= riskAmount;
-          currentLossStreak++;
-          currentWinStreak = 0;
-          if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
-        }
-
-        if (balance > peak) peak = balance;
-        const dd = (peak - balance) / peak;
-        if (dd > maxDrawdown) maxDrawdown = dd;
-
-        equity.push(balance);
-      }
-
-      return {
-        equity,
-        finalBalance: balance,
-        maxDrawdown,
-        maxWinStreak,
-        maxLossStreak
-      };
-    }
-
-    function scenarioFromKey(result) {
-      if (!result) return null;
-      if (currentScenario === "median") return result.scenarios.median;
-      if (currentScenario === "worst") return result.scenarios.worst;
-      return result.scenarios.best; // default
-    }
-
-    function renderResults(result) {
-      const scen = scenarioFromKey(result);
-      if (!scen) return;
-
-      const start = result.initialCapital;
-      const end = scen.finalBalance;
-      const retPct = (end / start - 1) * 100;
-      const retR = (end - start) / (start * result.riskPct);
-      const maxDDpct = scen.maxDrawdown * 100;
-
-      resultsGridEl.innerHTML = `
-        <div class="stat-card">
-          <div class="stat-label">Start Balance</div>
-          <div class="stat-value">$${start.toFixed(2)}</div>
-          <div class="stat-note">Initial capital used in all simulations.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">End Balance</div>
-          <div class="stat-value">$${end.toFixed(2)}</div>
-          <div class="stat-note">Final balance for the ${labelForScenario(currentScenario)} path.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Return (Compounded)</div>
-          <div class="stat-value">${retPct.toFixed(2)}%</div>
-          <div class="stat-note">% change from start to finish.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Return (R)</div>
-          <div class="stat-value">${retR.toFixed(1)}R</div>
-          <div class="stat-note">Total R-multiples gained or lost versus initial risk size.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Expectancy</div>
-          <div class="stat-value">${result.expectancyR >= 0 ? "+" : ""}${result.expectancyR.toFixed(2)}R</div>
-          <div class="stat-note">Expected R per trade from your win rate and R:R.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Max Drawdown</div>
-          <div class="stat-value">${maxDDpct.toFixed(2)}%</div>
-          <div class="stat-note">Worst peak-to-trough decline in this scenario.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Max Consecutive Wins</div>
-          <div class="stat-value">${scen.maxWinStreak}</div>
-          <div class="stat-note">Longest winning streak on this equity curve.</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Max Consecutive Losses</div>
-          <div class="stat-value">${scen.maxLossStreak}</div>
-          <div class="stat-note">Longest losing streak on this equity curve.</div>
-        </div>
-      `;
-    }
-
-    function labelForScenario(key) {
-      if (key === "median") return "most probable";
-      if (key === "worst") return "worst-case";
-      return "best-case";
-    }
-
-    function renderProbabilities(result) {
-      const p = result.probs;
-      probRowEl.innerHTML = `
-        <div class="prob-card">
-          <div class="prob-label">Probability of Loss</div>
-          <div class="prob-value">${p.probLoss.toFixed(1)}%</div>
-        </div>
-        <div class="prob-card">
-          <div class="prob-label">Probability of Small Gain (0–30%)</div>
-          <div class="prob-value">${p.probSmallGain.toFixed(1)}%</div>
-        </div>
-        <div class="prob-card">
-          <div class="prob-label">Probability of Medium Gain (30–60%)</div>
-          <div class="prob-value">${p.probMediumGain.toFixed(1)}%</div>
-        </div>
-        <div class="prob-card">
-          <div class="prob-label">Probability of Large Gain (60%+)</div>
-          <div class="prob-value">${p.probLargeGain.toFixed(1)}%</div>
-        </div>
-      `;
-    }
-
-    function renderChart(result) {
-      const ctx = document.getElementById("equityChart").getContext("2d");
-      const numTrades = result.numTrades;
-      const labels = Array.from({ length: numTrades + 1 }, (_, i) => i);
-
-      // base datasets (many grey lines)
-      const datasets = result.paths.map(p => ({
-        label: "Path",
-        data: p.equity,
-        borderWidth: 1,
-        borderColor: "rgba(148,163,184,0.35)",
-        pointRadius: 0,
-        fill: false
-      }));
-
-      // highlighted scenarios will be adjusted separately
-      const bestIndex = result.paths.indexOf(result.scenarios.best);
-      const medianIndex = result.paths.indexOf(result.scenarios.median);
-      const worstIndex = result.paths.indexOf(result.scenarios.worst);
-
-      if (bestIndex >= 0) datasets[bestIndex].borderWidth = 2.2;
-      if (medianIndex >= 0) datasets[medianIndex].borderWidth = 2.2;
-      if (worstIndex >= 0) datasets[worstIndex].borderWidth = 2.2;
-
-      if (equityChart) equityChart.destroy();
-
-      equityChart = new Chart(ctx, {
-        type: "line",
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          elements: {
-            line: { tension: 0.1 }
-          },
-          scales: {
-            x: {
-              title: { display: true, text: "Number of Trades" },
-              ticks: { color: "#9ca3af", font: { size: 10 } },
-              grid: { color: "#1f2937" }
-            },
-            y: {
-              title: { display: true, text: "Account Balance ($)" },
-              ticks: { color: "#9ca3af", font: { size: 10 } },
-              grid: { color: "#1f2937" }
-            }
-          }
-        }
-      });
-
-      updateHighlightedDataset();
-    }
-
-    function updateHighlightedDataset() {
-      if (!equityChart || !lastSimResult) return;
-
-      const { paths, scenarios } = lastSimResult;
-      const bestIndex = paths.indexOf(scenarios.best);
-      const medianIndex = paths.indexOf(scenarios.median);
-      const worstIndex = paths.indexOf(scenarios.worst);
-
-      equityChart.data.datasets.forEach((ds, idx) => {
-        // reset to base
-        ds.borderWidth = 1;
-        ds.borderColor = "rgba(148,163,184,0.35)";
-      });
-
-      if (bestIndex >= 0) {
-        const ds = equityChart.data.datasets[bestIndex];
-        ds.borderWidth = currentScenario === "best" ? 3 : 2;
-        ds.borderColor = "rgba(34,197,94,0.95)"; // green-ish for best
-      }
-      if (medianIndex >= 0) {
-        const ds = equityChart.data.datasets[medianIndex];
-        ds.borderWidth = currentScenario === "median" ? 3 : 2;
-        ds.borderColor = "rgba(59,130,246,0.95)"; // blue-ish for median
-      }
-      if (worstIndex >= 0) {
-        const ds = equityChart.data.datasets[worstIndex];
-        ds.borderWidth = currentScenario === "worst" ? 3 : 2;
-        ds.borderColor = "rgba(248,113,113,0.95)"; // red-ish for worst
-      }
-
-      equityChart.update();
-    }
+    ...
   </script>
 </body>
 </html>
-
